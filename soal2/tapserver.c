@@ -10,10 +10,19 @@ int flag = 0;
 
 // Function designed for chat between client and server
 void func (int sockfd) {
-    char username[100];
+    char username[100], *filename;
     char buffer[1024] = {0};
-    char *cek1 = "1. Login\n2. Register\n   Choices: ", *cek2 ="1. Find Match\n2. Logout\n   Choices : ";
-    FILE * fp;
+    char *cek1 = "1. Login\n2. Register\n   Choices : ", *cek2 ="1. Find Match\n2. Logout\n   Choices : ";
+    FILE * fp,*fo;
+    int flag2 = 1;
+    if((fp = fopen ( "/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt", "r" ) ) == NULL)
+        flag2 = 0;
+    fclose(fp);
+    if(flag2 == 0){
+        fp = fopen ( "/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt", "w+" );
+        fclose(fp);
+    }
+
     for(;;) {
         printf("flag = %d\n",flag);
         bzero(buffer, sizeof(buffer));
@@ -49,32 +58,41 @@ void func (int sockfd) {
                 // printf("%s ",line);
                 if (strstr(line, username) != NULL) {
                     flag = 1; 
-                    printf("berhasil login\n");
+                    printf("Auth success\n");
                     break;
                 }
+            }
+            if(flag == 0){
+                printf("Auth Failed\n");
             }
             // fprintf(fp, "%s\n",username);
             bzero(buffer, sizeof(buffer));
             fclose(fp);
         }
         else if (!(strncmp(buffer,"register",8))) {
-            printf("2\n");
+            // printf("2\n");
             send ( sockfd, "   Username : ", 14, 0);
             bzero(buffer, sizeof(buffer));
             read(sockfd, buffer, 1024);
-            printf("aa = %s\n",buffer);
+            // printf("aa = %s\n",buffer);
             fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","a");
             strcpy(username,buffer);
-            printf("dd = %s\n",username);
+            // printf("dd = %s\n",username);
             send( sockfd, "   Password : ", 14, 0);
             bzero(buffer, sizeof(buffer));
             read(sockfd, buffer, 1024);
-            printf("bb = %s\n",buffer);
+            // printf("bb = %s\n",buffer);
             strcat(username," - ");
             strcat(username,buffer);
-            printf("cc = %s\n",username);
+            // printf("cc = %s\n",username);
             fprintf(fp, "%s\n",username);
             bzero(buffer, sizeof(buffer));
+            fclose(fp);
+            char line[100];
+            fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
+            while (fgets(line, sizeof(line), fp) != NULL) {
+                printf("%s",line);
+            }
             fclose(fp);
         }
         else
