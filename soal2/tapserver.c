@@ -24,7 +24,7 @@ void func (int sockfd) {
     }
 
     for(;;) {
-        printf("flag = %d\n",flag);
+        // printf("flag = %d\n",flag);
         bzero(buffer, sizeof(buffer));
         if(flag == 0 )
         strcpy(buffer,cek1);
@@ -36,24 +36,24 @@ void func (int sockfd) {
         bzero(buffer, sizeof(buffer));
         read(sockfd, buffer, 1024);
         printf("%s",buffer);
-        printf("%d",strcmp(buffer,"register"));
+        // printf("%d",strcmp(buffer,"register"));
         if(!(strncmp(buffer,"login",5))){
-            printf("2\n");
+            // printf("2\n");
             char line[160];
             send ( sockfd, "   Username : ", 14, 0);
             bzero(buffer, sizeof(buffer));
             read(sockfd, buffer, 1024);
-            printf("aa = %s\n",buffer);
+            // printf("aa = %s\n",buffer);
             fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
             strcpy(username,buffer);
-            printf("dd = %s\n",username);
+            // printf("dd = %s\n",username);
             send( sockfd, "   Password : ", 14, 0);
             bzero(buffer, sizeof(buffer));
             read(sockfd, buffer, 1024);
-            printf("bb = %s\n",buffer);
+            // printf("bb = %s\n",buffer);
             strcat(username," - ");
             strcat(username,buffer);
-            printf("cc = %s\n",username);
+            // printf("cc = %s\n",username);
             while (fgets(line, sizeof(line), fp) != NULL) {
                 // printf("%s ",line);
                 if (strstr(line, username) != NULL) {
