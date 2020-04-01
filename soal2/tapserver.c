@@ -6,102 +6,15 @@
 #include <unistd.h>
 
 #define PORT 8080
-int flag = 0;
+// int player = 
 
 // Function designed for chat between client and server
-void func (int sockfd) {
-    char username[100], *filename;
-    char buffer[1024] = {0};
-    char *cek1 = "1. Login\n2. Register\n   Choices : ", *cek2 ="1. Find Match\n2. Logout\n   Choices : ";
-    FILE * fp,*fo;
-    int flag2 = 1;
-    if((fp = fopen ( "/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt", "r" ) ) == NULL)
-        flag2 = 0;
-    fclose(fp);
-    if(flag2 == 0){
-        fp = fopen ( "/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt", "w+" );
-        fclose(fp);
-    }
-
-    for(;;) {
-        // printf("flag = %d\n",flag);
-        bzero(buffer, sizeof(buffer));
-        if(flag == 0 )
-        strcpy(buffer,cek1);
-        else if(flag == 1)
-        strcpy(buffer,cek2);
-
-        send ( sockfd, buffer, sizeof(buffer), 0) ;
-
-        bzero(buffer, sizeof(buffer));
-        read(sockfd, buffer, 1024);
-        printf("%s",buffer);
-        // printf("%d",strcmp(buffer,"register"));
-        if(!(strncmp(buffer,"login",5))){
-            // printf("2\n");
-            char line[160];
-            send ( sockfd, "   Username : ", 14, 0);
-            bzero(buffer, sizeof(buffer));
-            read(sockfd, buffer, 1024);
-            // printf("aa = %s\n",buffer);
-            fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
-            strcpy(username,buffer);
-            // printf("dd = %s\n",username);
-            send( sockfd, "   Password : ", 14, 0);
-            bzero(buffer, sizeof(buffer));
-            read(sockfd, buffer, 1024);
-            // printf("bb = %s\n",buffer);
-            strcat(username," - ");
-            strcat(username,buffer);
-            // printf("cc = %s\n",username);
-            while (fgets(line, sizeof(line), fp) != NULL) {
-                // printf("%s ",line);
-                if (strstr(line, username) != NULL) {
-                    flag = 1; 
-                    printf("Auth success\n");
-                    break;
-                }
-            }
-            if(flag == 0){
-                printf("Auth Failed\n");
-            }
-            // fprintf(fp, "%s\n",username);
-            bzero(buffer, sizeof(buffer));
-            fclose(fp);
-        }
-        else if (!(strncmp(buffer,"register",8))) {
-            // printf("2\n");
-            send ( sockfd, "   Username : ", 14, 0);
-            bzero(buffer, sizeof(buffer));
-            read(sockfd, buffer, 1024);
-            // printf("aa = %s\n",buffer);
-            fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","a");
-            strcpy(username,buffer);
-            // printf("dd = %s\n",username);
-            send( sockfd, "   Password : ", 14, 0);
-            bzero(buffer, sizeof(buffer));
-            read(sockfd, buffer, 1024);
-            // printf("bb = %s\n",buffer);
-            strcat(username," - ");
-            strcat(username,buffer);
-            // printf("cc = %s\n",username);
-            fprintf(fp, "%s\n",username);
-            bzero(buffer, sizeof(buffer));
-            fclose(fp);
-            char line[100];
-            fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
-            while (fgets(line, sizeof(line), fp) != NULL) {
-                printf("%s",line);
-            }
-            fclose(fp);
-        }
-        else
-            printf("gagal\n");
-    }
-}
+// void func (int new_socket) {
+// }
 
 int main (int argc, char const *argv[]) {
 
+    int flag = 0;
     int server_fd, new_socket, opt = 1;
     struct sockaddr_in address;
 
@@ -135,12 +48,104 @@ int main (int argc, char const *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) {
-        perror("accept");
-        exit(EXIT_FAILURE);
+
+    // func(new_socket);
+
+    char username[100], *filename;
+    char buffer[1024] = {0};
+    char *cek1 = "1. Login\n2. Register\n   Choices : ", *cek2 ="1. Find Match\n2. Logout\n   Choices : ";
+    while(1){
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) {
+            perror("accept");
+            exit(EXIT_FAILURE);
+        }
+
+        FILE * fp,*fo;
+        int flag2 = 1;
+        pid_t childpid;
+        if((fp = fopen ( "/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt", "r" ) ) == NULL)
+            flag2 = 0;
+        fclose(fp);
+        if(flag2 == 0){
+            fp = fopen ( "/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt", "w+" );
+            fclose(fp);
+        }
+        if((childpid = fork()) == 0)
+        for(;;) {
+            // printf("flag = %d\n",flag);
+            bzero(buffer, sizeof(buffer));
+            if(flag == 0 )
+            strcpy(buffer,cek1);
+            else if(flag == 1)
+            strcpy(buffer,cek2);
+
+            send ( new_socket, buffer, sizeof(buffer), 0) ;
+
+            bzero(buffer, sizeof(buffer));
+            read(new_socket, buffer, 1024);
+            // printf("%s",buffer);
+            // printf("%d",strcmp(buffer,"register"));
+            if(!(strncmp(buffer,"login",5))){
+                // printf("2\n");
+                char line[160];
+                send ( new_socket, "   Username : ", 14, 0);
+                bzero(buffer, sizeof(buffer));
+                read(new_socket, buffer, 1024);
+                // printf("aa = %s\n",buffer);
+                fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
+                strcpy(username,buffer);
+                // printf("dd = %s\n",username);
+                send( new_socket, "   Password : ", 14, 0);
+                bzero(buffer, sizeof(buffer));
+                read(new_socket, buffer, 1024);
+                // printf("bb = %s\n",buffer);
+                strcat(username," - ");
+                strcat(username,buffer);
+                // printf("cc = %s\n",username);
+                while (fgets(line, sizeof(line), fp) != NULL) {
+                    // printf("%s ",line);
+                    if (strstr(line, username) != NULL) {
+                        flag = 1; 
+                        printf("Auth success\n");
+                        break;
+                    }
+                }
+                if(flag == 0){
+                    printf("Auth Failed\n");
+                }
+                // fprintf(fp, "%s\n",username);
+                bzero(buffer, sizeof(buffer));
+                fclose(fp);
+            }
+            else if (!(strncmp(buffer,"register",8))) {
+                // printf("2\n");
+                send ( new_socket, "   Username : ", 14, 0);
+                bzero(buffer, sizeof(buffer));
+                read(new_socket, buffer, 1024);
+                // printf("aa = %s\n",buffer);
+                fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","a");
+                strcpy(username,buffer);
+                // printf("dd = %s\n",username);
+                send( new_socket, "   Password : ", 14, 0);
+                bzero(buffer, sizeof(buffer));
+                read(new_socket, buffer, 1024);
+                // printf("bb = %s\n",buffer);
+                strcat(username," - ");
+                strcat(username,buffer);
+                // printf("cc = %s\n",username);
+                fprintf(fp, "%s\n",username);
+                bzero(buffer, sizeof(buffer));
+                fclose(fp);
+                char line[100];
+                fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
+                while (fgets(line, sizeof(line), fp) != NULL) {
+                    printf("%s",line);
+                }
+                fclose(fp);
+            }
+            else
+                printf("gagal\n");
+        }
     }
-
-    func(new_socket);
-
     return 0;
 }
