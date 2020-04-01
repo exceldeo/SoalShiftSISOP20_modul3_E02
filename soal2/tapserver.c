@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
+// #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define PORT 8080
 // int player = 
@@ -50,7 +52,7 @@ int main (int argc, char const *argv[]) {
 
 
     // func(new_socket);
-
+    int player = 0;
     char username[100], *filename;
     char buffer[1024] = {0};
     char *cek1 = "1. Login\n2. Register\n   Choices : ", *cek2 ="1. Find Match\n2. Logout\n   Choices : ";
@@ -70,6 +72,8 @@ int main (int argc, char const *argv[]) {
             fp = fopen ( "/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt", "w+" );
             fclose(fp);
         }
+        printf("Connection accepted from %s:%d\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+        // printf("new socket %d\n",new_socket);
         if((childpid = fork()) == 0)
         for(;;) {
             // printf("flag = %d\n",flag);
@@ -105,7 +109,8 @@ int main (int argc, char const *argv[]) {
                 while (fgets(line, sizeof(line), fp) != NULL) {
                     // printf("%s ",line);
                     if (strstr(line, username) != NULL) {
-                        flag = 1; 
+                        flag = 1;
+                        player++; 
                         printf("Auth success\n");
                         break;
                     }
@@ -142,6 +147,16 @@ int main (int argc, char const *argv[]) {
                     printf("%s",line);
                 }
                 fclose(fp);
+            }
+            else if (!(strncmp(buffer,"find",4)) && flag == 1){
+                if(player < 2 ){
+                    send( new_socket, "Waiting for player ...", 22, 0);
+                    bzero(buffer, sizeof(buffer));
+                }
+                else{
+                    send( new_socket, "berhasil masuk", 14, 0);
+                    bzero(buffer, sizeof(buffer));
+                }
             }
             else
                 printf("gagal\n");
