@@ -165,12 +165,38 @@ int main(int argc, char *argv[]) {
             pthread_join(tid[i],NULL);
             i++;
             }
-            
         }
 
     }
-    else if (strcmp(argv[1],"-d") == 0) {
-        
+    else if (strcmp(argv[1],"-d") == 0 && argc == 3) {
+        i = 0;
+        DIR *fd, *fdo;
+        struct dirent *masuk;
+        char tempata[100],tempatb[100];
+        // printf("bbb\n");
+        fd = opendir(argv[2]);
+        int available = 0;
+
+        if(fd == NULL)
+        {
+            printf("error\n");
+        }
+        while( (masuk=readdir(fd)) )
+        {
+            if ( !strcmp(masuk->d_name, ".") || !strcmp(masuk->d_name, "..") )
+            continue;
+            printf("%s %d\n",masuk->d_name,masuk->d_type);
+
+            int err;
+            strcpy(tempata,argv[2]);
+            strcat(tempata,"/");
+            strcat(tempata,masuk->d_name);
+            if(masuk->d_type == 8){
+            pthread_create(&(tid[i]),NULL,playandcount,tempata); //membuat thread
+            pthread_join(tid[i],NULL);
+            i++;
+            }
+        }
     }
 
 
