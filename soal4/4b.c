@@ -1,22 +1,32 @@
-#include <stdio.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <unistd.h>
+#include<stdio.h>
+#include<string.h>
+#include<pthread.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<sys/types.h>
+#include<sys/wait.h>
+#include<sys/shm.h>
+#include<sys/ipc.h>
 
-void main()
-{
-        key_t key = 1234;
-        int *value;
+int main () {
 
-        int shmid = shmget(key, sizeof(int), IPC_CREAT | 0666);
-        value = shmat(shmid, NULL, 0);
+    int row = 4;
+    int column = 5;
+    int *matrix;
 
-        printf("Program 1 : %d\n", *value);
-	*value = 30;
+    key_t key = 1234;
+    int shmid = shmget(key, sizeof(int)*row*column, IPC_CREAT | 0666);
+    matrix = (int *)shmat(shmid, NULL, 0);
 
-        sleep(5);
+    for (int i = 0; i < row; i++){
+        for (int j = 0; j < column; j++){
+            printf("%d\t", matrix[i*column + j]);
+        }
+        printf("\n");
+    }
 
-        printf("Program 1: %d\n", *value);
-        shmdt(value);
-        shmctl(shmid, IPC_RMID, NULL);
+    shmdt(matrix);
+    shmctl(shmid, IPC_RMID, NULL);
+
+    return 0;
 }
