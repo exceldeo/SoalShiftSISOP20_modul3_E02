@@ -10,6 +10,7 @@
 
 pthread_t tid[4];
 
+// Ubah-ubah matriks disini!!!
 int A[4][2] = { {1, 2},
                 {3, 4},
                 {5, 6},
@@ -44,8 +45,6 @@ int main () {
 
         if (err != 0)
             printf("\nCan't create thread: [%s]", strerror(err));
-        // else
-        //     printf("\nCreate thread succes\n");
     
     }
 
@@ -53,10 +52,10 @@ int main () {
     pthread_join(tid[1], NULL);
     pthread_join(tid[2], NULL);
 
-    for (int j = 0; j < 4; j++) {
-        for (int k = 0; k < 5; k++) printf("%d\t", C[j][k]);
-        printf("\n");
-    }
+//     for (int j = 0; j < 4; j++) {
+//         for (int k = 0; k < 5; k++) printf("%d\t", C[j][k]);
+//         printf("\n");
+//     }
 
     printf("\nSHARED MEMORY\n");
 
@@ -77,10 +76,6 @@ int main () {
     }
 
     sleep(10);
-    // for (int j = 0; j < 4; j++) {
-    //     for (int k = 0; k < 5; k++) printf("%d\t", matrix[j*column + k]);
-    //     printf("\n");
-    // }
 
     shmdt(matrix);
     shmctl(shmid, IPC_RMID, NULL);
