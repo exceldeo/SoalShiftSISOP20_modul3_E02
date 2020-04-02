@@ -100,19 +100,13 @@ void* playandcount(void *arg)
         mkdir(tempat2, 0777);
     }
 	
-    int ch;
-    // FILE *fp1, *fp2;
+
     char source[1024], target[1024];
 
-    printf("Enter your source file name:\n");
-    // strcpy(source,cwd);
-    // strcat(source,"/");
+
     strcpy(source,arg);
-    printf("souce %s\n",source);
-    printf("Enter your destination file name:");
     strcpy(target,cwd);
     strcat(target,"/");
-    printf("target1 %d %s\n",n,target);
     if(n == 1 ){
         strcat(target,"Unknown");
     }
@@ -121,29 +115,7 @@ void* playandcount(void *arg)
     }
     strcat(target,"/");
     strcat(target,arr3);
-    printf("target2 %s\n arr = %s\n",target,arr3);
-    // fp1 = fopen(source, "r");
-    // fp2 = fopen(target, "w");
-
-    // if (!fp1) {
-    //         printf("Unable to open source file to read!!\n");
-    //         fclose(fp2);
-    //         return 0;
-    // }
-
-    // if (!fp2) {
-    //         printf("Unable to open target file to write\n");
-    //         return 0;
-    // }
     rename(source,target);
-    // while ((ch = fgetc(fp1)) != EOF) {
-    //         fputc(ch, fp2);
-    // }
-
-    // fclose(fp1);
-    // fclose(fp2);
-
-    // remove(source);
     n = 0;
     m = 0;
 
