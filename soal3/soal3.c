@@ -11,7 +11,6 @@
 #include <dirent.h>
 #include <string.h>
 #include <string.h>
-#include <pthread.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <pthread.h>

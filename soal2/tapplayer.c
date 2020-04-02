@@ -18,11 +18,17 @@ void func (int sockfd) {
     for (;;) {
         bzero(buffer, sizeof(buffer));
         read(sockfd, buffer, sizeof(buffer));
+        while(!(strncmp(buffer,"wait",4))) {
+            printf("Waiting for player ...\n");
+            bzero(buffer, sizeof(buffer));
+            sleep(1);
+            read(sockfd, buffer, sizeof(buffer));
+        }
+        if(!(strncmp(buffer,"play",4))) {
+            printf("Game started\n");
+            // send( sockfd, "endgame", 7, 0 );
+        }
         printf("%s", buffer);
-        if(!(strncmp(buffer,"game",4)))
-            game = 1;
-        if(!(strncmp(buffer,"endgame",7)))
-            game = 0;
 
         bzero(buffer, sizeof(buffer));
         // scanf("%[^\n]s",buffer);
