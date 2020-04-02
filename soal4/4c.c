@@ -1,23 +1,58 @@
-#include <stdio.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <unistd.h>
+#include<stdio.h> 
+#include<stdlib.h> 
+#include<unistd.h> 
+#include<sys/types.h> 
+#include<string.h> 
+#include<sys/wait.h> 
 
-void main()
-{
-        key_t key = 1234;
-        int *value;
+int main() 
+{ 
 
-        int shmid = shmget(key, sizeof(int), IPC_CREAT | 0666);
-        value = shmat(shmid, NULL, 0);
 
-        *value = 10;
+	int fd1[2]; // Used to store two ends of first pipe 
+	int fd2[2]; // Used to store two ends of second pipe 
+	pid_t p; 
+        int status4;
+	if (pipe(fd1)==-1) 
+	{ 
+		fprintf(stderr, "Pipe Failed" ); 
+		return 1; 
+	} 
+	if (pipe(fd2)==-1) 
+	{ 
+		fprintf(stderr, "Pipe Failed" ); 
+		return 1; 
+	} 
+ 
+	p = fork(); 
+	if (p < 0) 
+	{ 
+		fprintf(stderr, "fork Failed" ); 
+		return 1; 
+	}  
+	else if (p == 0) 
+	{ 
+        dup2(fd1[1], 1);
 
-        printf("Program 1 : %d\n", *value);
+        close(fd1[0]);
+        close(fd1[1]);
 
-        sleep(5);
+        char *argm1[] = {"ls", NULL};
+        execv("/bin/ls", argm1);
+	} 
+        else{
 
-        printf("Program 1: %d\n", *value);
-        shmdt(value);
-        shmctl(shmid, IPC_RMID, NULL);
-}
+        close(fd2[0]);
+        close(fd2[1]);
+		
+        dup2(fd1[0], 0);
+        dup2(fd2[1], 1);
+
+        close(fd1[0]);
+        close(fd1[1]);
+
+        char *argm2[] = {"wc", "-l", NULL};
+        execv("/usr/bin/wc", argm2);
+        }
+
+} 
