@@ -9,7 +9,7 @@
 
 #define PORT 8080
 
-int player = 0;
+int player = 0, game = 0;
 pthread_t tid[100];
 
 void* playandcount(void *arg)
@@ -42,16 +42,19 @@ int flag = 0;
     for(;;) {
         // printf("flag = %d\n",flag);
         bzero(buffer, sizeof(buffer));
-        if(flag == 0 )
+        if(flag == 0 && game == 0 )
         strcpy(buffer,cek1);
-        else if(flag == 1)
+        else if(flag == 1 && game == 0)
         strcpy(buffer,cek2);
-
+        printf("buffer 1 -> %s\n",buffer);
         send ( new_socket, buffer, sizeof(buffer), 0) ;
 
         bzero(buffer, sizeof(buffer));
         read(new_socket, buffer, 1024);
-        // printf("%s",buffer);
+        if(!(strncmp(buffer," ",1)))
+            printf("buffer 2 -> - \n");
+        else
+        printf("buffer 5 ->%s\n",buffer);
         // printf("%d",strcmp(buffer,"register"));
         if(!(strncmp(buffer,"login",5))){
             // printf("2\n");
@@ -114,30 +117,31 @@ int flag = 0;
         else if (!(strncmp(buffer,"find",4)) && flag == 1){
             player++;
             while(player < 2){
+                printf("buffer 3 ->%s wait\n",buffer);
                 send( new_socket, "wait", 4, 0);
                 // printf("player %d\n",player);
+                bzero(buffer, sizeof(buffer));
             sleep(1);
             }
-                        
-            // send( new_socket, "play", 4, 0);
-
-            // bzero(buffer, sizeof(buffer));
-            
-        }
-        else if (!(strncmp(buffer,"endgame",7)) && flag == 1){
+            if(player == 2){
+            game = 1;
+            printf("buffer 4 ->%s play\n",buffer);
+            send( new_socket, "play", 4, 0);
+            }
             
         }
         else if (!(strncmp(buffer,"logout",6)) && flag == 1){
             flag = 0;
             printf("flag %d player %d\n",flag,player);
         }
-        else if (!(strncmp(buffer," ",1)) && player<1){
+        else if (!(strncmp(buffer," ",1)) && game == 1 ){
             health++;
+            printf("heal = %d\n",health);
             if(health >= 10 ) {
-                send( new_socket, "endgame", 7, 0);
-                bzero(buffer, sizeof(buffer));
+                // printf("endgame2]\n");
+                player = 0;
+                game = 0;
             }
-
                 
         }
         else
