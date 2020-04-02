@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
         }
     }
      
-    else if (strcmp(argv[1],"*") == 0) {
+    else if (strcmp(argv[1],"*") == 0 && argc == 2) {
         i = 0;
         DIR *fd, *fdo;
         struct dirent *masuk;
