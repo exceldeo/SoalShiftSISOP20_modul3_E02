@@ -52,12 +52,7 @@ int main () {
     pthread_join(tid[1], NULL);
     pthread_join(tid[2], NULL);
 
-//     for (int j = 0; j < 4; j++) {
-//         for (int k = 0; k < 5; k++) printf("%d\t", C[j][k]);
-//         printf("\n");
-//     }
-
-    printf("\nSHARED MEMORY\n");
+    printf("MATRIKS PERKALIAN\n");
 
     int row = 4;
     int column = 5;
