@@ -4,11 +4,10 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
-// #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #define PORT 8080
-// int player = 
+int player = 0;
 
 // Function designed for chat between client and server
 // void func (int new_socket) {
@@ -57,8 +56,10 @@ int main (int argc, char const *argv[]) {
     char buffer[1024] = {0};
     char *cek1 = "1. Login\n2. Register\n   Choices : ", *cek2 ="1. Find Match\n2. Logout\n   Choices : ";
     while(1){
+        // printf("coba\n");
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) {
             perror("accept");
+            // printf("kamu\n");
             exit(EXIT_FAILURE);
         }
 
@@ -72,6 +73,7 @@ int main (int argc, char const *argv[]) {
             fp = fopen ( "/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt", "w+" );
             fclose(fp);
         }
+        int health = 0;
         printf("Connection accepted from %s:%d\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
         // printf("new socket %d\n",new_socket);
         if((childpid = fork()) == 0)
@@ -110,7 +112,6 @@ int main (int argc, char const *argv[]) {
                     // printf("%s ",line);
                     if (strstr(line, username) != NULL) {
                         flag = 1;
-                        player++; 
                         printf("Auth success\n");
                         break;
                     }
@@ -149,14 +150,28 @@ int main (int argc, char const *argv[]) {
                 fclose(fp);
             }
             else if (!(strncmp(buffer,"find",4)) && flag == 1){
-                if(player < 2 ){
+                player++;
+                while(player < 2 ){
                     send( new_socket, "Waiting for player ...", 22, 0);
-                    bzero(buffer, sizeof(buffer));
                 }
                 else{
                     send( new_socket, "berhasil masuk", 14, 0);
+                    send( new_socket, "game", 4, 0);
+                }
+                    bzero(buffer, sizeof(buffer));
+            }
+            else if (!(strncmp(buffer,"logout",6)) && flag == 1){
+                flag = 0;
+                printf("flag %d player %d\n",flag,player);
+            }
+            else if (!(strncmp(buffer," ",1)) && player<1){
+                health++;
+                if(health >= 10 ) {
+                    send( new_socket, "endgame", 7, 0);
                     bzero(buffer, sizeof(buffer));
                 }
+
+                    
             }
             else
                 printf("gagal\n");

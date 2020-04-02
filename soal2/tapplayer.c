@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
+int game = 0;
 
 void func (int sockfd) {
 
@@ -18,6 +19,10 @@ void func (int sockfd) {
         bzero(buffer, sizeof(buffer));
         read(sockfd, buffer, sizeof(buffer));
         printf("%s", buffer);
+        if(!(strncmp(buffer,"game",4)))
+            game = 1;
+        if(!(strncmp(buffer,"endgame",7)))
+            game = 0;
 
         bzero(buffer, sizeof(buffer));
         // scanf("%[^\n]s",buffer);
@@ -28,6 +33,8 @@ void func (int sockfd) {
                 buffer[n] = com;
             n++;
         }
+
+        
         
         send( sockfd, buffer, sizeof(buffer), 0 );
     }
