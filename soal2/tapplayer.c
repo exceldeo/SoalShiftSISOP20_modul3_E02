@@ -104,7 +104,7 @@ void func (int sockfd) {
             play = 0;
         }
         else{
-            printf("win = %d\nlose = %d\n",win,dead);
+            // printf("win = %d\nlose = %d\n",win,dead);
             bzero(buffer, sizeof(buffer));
             read(sockfd, buffer, sizeof(buffer));
             // printf("buff2 %s buff2\n",buffer);

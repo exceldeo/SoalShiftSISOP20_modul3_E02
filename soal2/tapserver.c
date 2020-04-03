@@ -91,9 +91,8 @@ int flag = 0;
                     }
                     player = 0;
                     game = 0;
-                    id_heal[0]=100;
-                    id_heal[1]=100;
-
+                    // id_heal[1]=100;
+                    // id_heal[0]=100;
                 // int
                     // send( new_socket, "end", 7, 0);
                 }
