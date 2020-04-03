@@ -14,3 +14,4 @@ player - player
 apalah - apalah
 edo - deo
 excel - excel
+/ - /

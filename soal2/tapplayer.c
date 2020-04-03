@@ -5,9 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include <termios.h>
 
 static struct termios old, new;
+pthread_t tid1, tid2;
 
 /* Initialize new terminal i/o settings */
 void initTermios(int echo) 
@@ -43,61 +45,97 @@ char getch(void)
 
 #define PORT 8080
 int game = 0;
+char c,spasi = ' ';
+int win = 0, dead = 0,play = 0;
+char buffer[1024] = {0};
+int hit = 0;
+
+void* tulis(void *arg)
+{
+    int sockfd = *(int *)arg;
+    c = getch();
+    if(c == ' '){
+        send( sockfd,"hit", 3, 0 );
+        printf("ok");
+        hit++;
+    }
+}
+
+void* baca(void *arg)
+{
+    while(!dead && !win){
+
+        int sockfd = *(int *)arg;
+        bzero(buffer, sizeof(buffer));
+        read(sockfd, buffer, sizeof(buffer));
+        // printf("win = %d\ndead = %d\nplay = %d\n",win,dead,play);
+        if(!(strncmp(buffer,"win",3))){
+            win = 1;
+            // play = 0;
+        }
+        else if(!(strncmp(buffer,"dead",4))){
+            dead = 1;
+            // play = 0;
+        }
+        printf("%s\n",buffer);
+    }
+}
 
 void func (int sockfd) {
 
-    char buffer[1024] = {0};
     char cek[100];
     int tem;
     int heal;
 
     for (;;) {
-        bzero(buffer, sizeof(buffer));
-        read(sockfd, buffer, sizeof(buffer));
-        // printf("buff2 %s buff2\n",buffer);
-        while(!(strncmp(buffer,"wait",4))) {
-            printf("Waiting for player ...\n");
-            bzero(buffer, sizeof(buffer));
-            sleep(1);
-            read(sockfd, buffer, sizeof(buffer));
-        }
-        int hit = 0;
-        char c,spasi = ' ';
-        while(!(strncmp(buffer,"play",4))) {
-            if(hit == 0)
+        if(play == 1){
             printf("Game started\n");
-            // while(  && !(strncmp(buffer,"play",4))){
-                // printf("buffer %s\n apaloooooo\n",buffer);
+
+            pthread_create(&(tid2), NULL, baca, &sockfd);
+            while(!dead && !win){
                 c = getch();
                 if(c == ' '){
-                    send( sockfd," ", 1, 0 );
-                    printf("ok");
+                    send( sockfd,"hit", 3, 0 );
+                    // printf("ok");
                     hit++;
-                    // send( sockfd, "hit", 3, 0 );    
-                    // }
                 }
+            }
+            pthread_join(tid2,NULL);
+            play = 0;
         }
-        // if(hit >= 10){
-        // printf("endgamemm\n");
-        // send( sockfd, "endgame", 7, 0 );
-        // }
-        // if(!(strncmp(buffer,"endgame",7)))
-        //     continue;
+        else{
+            printf("win = %d\nlose = %d\n",win,dead);
+            bzero(buffer, sizeof(buffer));
+            read(sockfd, buffer, sizeof(buffer));
+            // printf("buff2 %s buff2\n",buffer);
+            while(!(strncmp(buffer,"wait",4))) {
+                printf("Waiting for player ...\n");
+                bzero(buffer, sizeof(buffer));
+                sleep(1);
+                read(sockfd, buffer, sizeof(buffer));
+            }
 
-        
+            if(!(strncmp(buffer,"play",4))) {
+                play = 1;
+            }
+            if(win == 0 && dead == 0 && play == 0 ){
 
-        printf("%s", buffer);
-        bzero(buffer, sizeof(buffer));
-        // scanf("%[^\n]s",buffer);
-        int n = 0;
-        char com;
-        while ((com = getchar()) != '\n'){
-            if(com != '\n')
-                buffer[n] = com;
-            n++;
+                printf("%s", buffer);
+                bzero(buffer, sizeof(buffer));
+                // scanf("%[^\n]s",buffer);
+                int n = 0;
+                char com;
+                
+                while ((com = getchar()) != '\n'){
+                    if(com != '\n')
+                        buffer[n] = com;
+                    n++;
+                }
+
+                send( sockfd, buffer, sizeof(buffer), 0 );
+            }
+            win = 0;dead = 0;
         }
-
-        send( sockfd, buffer, sizeof(buffer), 0 );
     }
 }
 
