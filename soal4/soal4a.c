@@ -31,10 +31,10 @@ void* playandcount (void *arg) {
             C[1][i] = A[1][0]*B[0][i] + A[1][1]*B[1][i];
     else if (pthread_equal(id, tid[2])) // baris 3 matriks c
         for (int i = 0; i < 5; i++)
-            C[2][i] = A[2][0]*B[0][i] + A[2][1]*B[2][i];
+            C[2][i] = A[2][0]*B[0][i] + A[2][1]*B[1][i];
     else if (pthread_equal(id, tid[3])) // baris 4 matriks c
         for (int i = 0; i < 5; i++)
-            C[3][i] = A[3][0]*B[0][i] + A[3][1]*B[3][i];
+            C[3][i] = A[3][0]*B[0][i] + A[3][1]*B[1][i];
 
 }
 
@@ -43,8 +43,8 @@ int main () {
     for (int i = 0; i < 4; i++) {
         int err = pthread_create(&(tid[i]), NULL, &playandcount, NULL);
 
-        if (err != 0)
-            printf("\nCan't create thread: [%s]", strerror(err));
+        // if (err != 0)
+        //     printf("\nCan't create thread: [%s]", strerror(err));
     
     }
 
