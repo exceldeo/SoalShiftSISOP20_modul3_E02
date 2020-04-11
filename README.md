@@ -1,18 +1,260 @@
 # SoalShiftSISOP20_modul3_E02
 
 ### Outline
-1. [Soal #1](#soal-1) (Source Code : [soal1.c]())
-2. [Soal #2](#soal-2) (Source Code : [soal2.c]())
-3. [Soal #3](#soal-3) (Source Code : [soal3.c]())
-4. [Soal #4](#soal-4) (Source Code : [soal4a.c](), [soal4b.c](), [soal4c.c]())
+1. [Soal #1](#soal-1) (Source Code : [soal1_traizone.c](https://github.com/exceldeo/SoalShiftSISOP20_modul3_E02/blob/master/soal1/soal1_trainzone.c), [soal1_pokezone.c](https://github.com/exceldeo/SoalShiftSISOP20_modul3_E02/blob/master/soal1/soal1_pokezone.c))
+2. [Soal #2](#soal-2) (Source Code : [soal2_tapplayer.c](https://github.com/exceldeo/SoalShiftSISOP20_modul3_E02/blob/master/soal2/tapplayer.c), [soal2_tapserver.c](https://github.com/exceldeo/SoalShiftSISOP20_modul3_E02/blob/master/soal2/tapserver.c))
+3. [Soal #3](#soal-3) (Source Code : [soal3.c](https://github.com/exceldeo/SoalShiftSISOP20_modul3_E02/blob/master/soal3/soal3.c))
+4. [Soal #4](#soal-4) (Source Code : [soal4a.c](https://github.com/exceldeo/SoalShiftSISOP20_modul3_E02/blob/master/soal4/soal4a.c), [soal4b.c](https://github.com/exceldeo/SoalShiftSISOP20_modul3_E02/blob/master/soal4/soal4b.c), [soal4c.c](https://github.com/exceldeo/SoalShiftSISOP20_modul3_E02/blob/master/soal4/soal4c.c))
+
+## Soal #1
+
+Program **soal1_traizone.c** memiliki 2 fitur yaitu Normal Mode dan Capture Mode. Pada Normal Mode terdapat 3 menu yaitu Cari Pokemon, Pokedex, dan Shop. Variabel `mencari` pada kode di bawah ini mulanya bernilai 0.
+```c
+if (mode == 0) {
+    if (mencari) printf("== Normal Mode ==\n1. Berhenti Mencari\n2. Pokedex\n3. Shop\n4. Go to capture mode\nInput: ");
+    else printf("== Normal Mode ==\n1. Cari Pokemon\n2. Pokedex\n3. Shop\n4. Go to capture mode\nInput: ");
+} 
+```
+Jika user memilih menu Cari Pokemon, maka program akan memanggil fungsi `caripokemon` dan mengubah opsi Cari Pokemon menjadi Berhenti Mencari. Kemudian program akan masuk ke dalam thread `fthreadcari` untuk mencari pokemon.
+```c
+void caripokemon() {
+	mencari = !mencari;
+	if (mencari) {
+		pthread_create(&threadcari, NULL, fthreadcari, NULL);
+	} else {
+		pthread_cancel(threadcari);
+	}
+}
+```
+Ketentuan untuk opsi Cari Pokemon sendiri di antaranya jika diaktifkan maka setiap 10 detik akan memiliki 60% chance untuk menemui pokemon. Adapun untuk tipe pokemon dan apakah pokemon tersebut shiny atau tidak diatur soal program soal1_pokezone.c. Berikut ini merupakan kode dari thread `fthreadcari`.
+```c
+void* fthreadcari() {
+	while (1) {
+		sleep(10);
+		if (rand() % 100 < 60) {
+			mencari = 0;
+			pthread_mutex_lock(&pokemoncapturewrite);
+			pokemoncapture = *shmpokemon;
+			pthread_mutex_unlock(&pokemoncapturewrite);
+			pthread_create(&pokemoncapturethread, NULL, fpokemoncapturethread, NULL); //lepas
+			mencari = 0;
+			mode = 1;
+			input = -1;
+			pthread_cancel(inputthread);
+			pthread_exit(0);
+		}
+	}
+}
+```
+Pada thread ini terdapat fungsi `pthread_mutex_lock(&pokemoncapturewrite)` yang digunakan untuk mengunci variabel `pokemoncapturewrite`. Variabel `pokemoncapturewrite` nantinya akan berisi tipe pokemon yang diperoleh dari program soal1_pokezone.c. Fungsi `pthread_mutex_unlock(&pokemoncapturewrite)` digunakan untuk mengunlock variabel `pokemoncapturewrite`. Kegunaan dari fungsi tersebut adalah untuk menjaga sumber daya suatu thread agar tidak digunakan oleh thread lain sebelum ia menyelesaikan pekerjaannya.
+
+Kita kemudian akan masuk ke dalam thread `fpokemoncapturethread` yang setiap 20 detik akan mengecek apakah pokemon yang sudah berhasil ditemukan kabur atau tidak. Variabel `tres` sendiri berisi kemungkinan pokemon tersebut lepas.
+```c
+void* fpokemoncapturethread() {
+	int thres = (pokemoncapture % 15) / 5;
+	if (thres == 0) thres = 5;
+	else if (thres == 1) thres = 10;
+	else if (thres == 2) thres = 20;
+	if (pokemoncapture >= 15) thres += 5;
+	while (1) {
+		sleep(20);
+		if (effect) continue;
+		if (rand() % 100 < thres) {
+			printf("Pokemon telah escape dari pencarian pokemon.\n");
+			pthread_mutex_lock(&pokemoncapturewrite);
+			pokemoncapture = -1;
+			pthread_mutex_unlock(&pokemoncapturewrite);
+			pthread_exit(0);
+		}
+	}
+}
+```
+
+Setelah berhasil menemukan pokemon, kita akan memasuki Capture Mode yang memiliki 3 opsi menu yaitu Tangkap, Item, dan Keluar.
+```c
+else if (mode == 1) {
+    if (pokemoncapture == -1) printf("== Capture Mode ==\n1. Tangkap\n2. Item\n3. Keluar\nInput: ");
+    else printf("== Capture Mode ==\nMenemukan pokemon: %s\n1. Tangkap\n2. Item\n3. Keluar\nInput: ", namapokemon[pokemoncapture]);
+}
+```
+
+Apabila kita memilih tangkap, maka pokemon akan ditangkap menggunakan pokeball yang kita miliki. Pokeball akan tetap berkurang walaupun pokemon tidak berhasil ditangkap. Penangkapan pokemon ini terjadi di dalam fungsi `tangkap`. Berikut ini merupakan beberapa baris kode dalam fungsi `tangkap`.
+```c
+int thres = (pokemoncapture % 15) / 5;
+
+if (thres == 0) thres = 70;
+else if (thres == 1) thres = 50;
+else if (thres == 2) thres = 30;
+
+if (pokemoncapture >= 15) thres -= 20;
+
+if (effect) thres += 20;
+
+if (rand() % 100 < thres) {
+	printf("Berhasil menangkap %s!\n", namapokemon[pokemoncapture]);
+	int slot = -1;
+	
+    for (int i = 0; i < 7; i++) {
+		if (pokemon[i] == -1) {
+			slot = i;
+			break;
+		}
+	}
+	if (slot == -1) {
+		int money = (pokemoncapture % 15) / 5;
+		if (money == 0) money = 80;
+		else if (money == 1) money = 100;
+		else if (money == 2) money = 200;
+		if (pokemoncapture >= 15) money += 5000;
+		pokedollar += money;
+		printf("Slot pokemon penuh! Anda mendapatkan %d.\n", money);
+	} else {
+		pthread_mutex_lock(&pokemonwrite);
+		pokemon[slot] = pokemoncapture;
+		pokemonAP[slot] = 100;
+		pthread_mutex_unlock(&pokemonwrite);
+		pthread_mutex_lock(&pokeslotwrite);
+		pokeslot = slot;
+		pthread_create(&pokemonthread[slot], NULL, fpokemonthread, NULL);
+	    	pthread_cancel(pokemoncapturethread);
+		pthread_mutex_lock(&pokemoncapturewrite);
+		pokemoncapture = -1;
+		pthread_mutex_unlock(&pokemoncapturewrite);
+		}
+} else {
+	printf("Tidak berhasil menangkap %s.\n", namapokemon[pokemoncapture]);
+}
+```
+
+Variabel `thres` dalam fungsi ini merupakan kemungkinan berhasil tidaknya suatu pokemon ditangkap. Apabila pokemon berhasil ditangkap sedangkan slot pokemon kita telah penuh maka pokemon yang ditangkap akan berubah menjadi pokedollar. Sedangkan apabila slot pokemon kita belum penuh maka kita akan masuk ke thread `fpokemonthread` yang mengurangi 10 Affection Point (AP) per 10 detik sejak waktu ditangkap dan jika AP tersebut bernilai 0 maka pokemon tersebut memiliki 90% chance untuk lepas tanpa memberikan pokedollar atau 10% chance untuk reset AP menjadi 50 AP. Berikut merupakan kode dari thread `fpokemonthread`.
+```c
+void* fpokemonthread() {
+	int slot = pokeslot;
+	pthread_mutex_unlock(&pokeslotwrite);
+	while (1) {
+		sleep(1);
+		if (mode == 1) continue;
+		pthread_mutex_lock(&pokemonwrite);
+		pokemonAP[slot] -= 10;
+		if (pokemonAP[slot] == 0) {
+			if (rand() % 100 < 90) {
+				printf("Ada pokemon yang terlepas.\n");
+				pokemon[slot] = -1;
+				pokemonAP[slot] = -1;
+				pthread_exit(0);
+			} else {
+				pokemonAP[slot] = 50;
+			}
+		}
+		pthread_mutex_unlock(&pokemonwrite);
+	}
+}
+```
+Kembali pada opsi Capture Mode, apabila kita memilih opsi Item maka kita akan masuk ke dalam fungsi `useitem` dan dapat menggunakan item Lullaby Powder yang meningkatkan chance untuk menangkap pokemon sebesar 20% serta menurunkan escape rate menjadi 0% sehingga pokemon tidak bisa lari. Penggunaan Lullaby Powder ini akan mengarahkan kita pada thread `flullabythread` yang akan mem-pause program selama 10 detik sesuai dengan durasi dari Lullaby Powder ketika digunakan. Sedangkan apabila kita milih opsi Keluar pada Capture Mode, maka kita akan kembali pada Normal Mode.
+
+Apabila kita memilih opsi Pokedex pada Normal Mode, maka kita akan diarahkan menuju fungsi `pokedex()` yang menampilkan list pokemon yang kita miliki beserta affection pointnya. Pada opsi ini kita juga dapat melepas pokemon yang telah ditangkap atau memberi berry kepada semua pokemon sehingga affection pointnya meningkat sebesar 10. Jika kita memilih untuk melepas pokemon, maka kita akan mendapatkan pokedollar sesuai dengan tipe pokemon yang kita lepaskan.
+
+Apabila kita memiih opsi Shop pada Normal Mode, maka kita dapat membeli item dari soal1_pokezone.c. Item yang dapat dibeli di antaranya ada Lullaby Powder, Pokeball, dan Berry. Pembelian item akan mengurangi pokedollar yang kita miliki. Masing-masing item yang dapat dibeli dan dimiliki trainer maksimal ada 99.
+
+Sekarang beralih pada program **soal1_pokezone.c**. Pada program ini terdapat 3 fitur yaitu shutdown game, jual item, dan menyediakan random pokemon. Karena program ini berhubungan dengan soal1_traizone.c maka disini digunakan shared memory. Shared memory ini juga digunakan pada soal1_traizone.c.
+```c
+shmpokemon = shmat(shmidpokemon, NULL, 0);
+shmlp = shmat(shmidlp, NULL, 0);
+shmpb = shmat(shmidpb, NULL, 0);
+shmb  = shmat(shmidb, NULL, 0);
+```
+Variabel `shmpokemon` ini berisi index untuk menentukan tipe pokemon, variabel `shmlp` berisi item Lullaby Powder yang tersedia di Shop,  variabel `shmpb` berisi item Pokeball yang tersedia di Shop, dan variabel `shmb` berisi item Berry yang tersedia di Shop.
+
+Apabila kita memilih shutdown game maka program akan membunuh semua proses yang dijalankan oleh soal1_traizone.c. Berikut ini merupakan baris kode yang akan menshutdown game ketika dipilih. Kode `snprintf(buf, sizeof(buf), "/proc/%ld/cmdline", lpid)` digunakan untuk mencari program yang akan di kill.
+```c
+if (x == 1) {
+    DIR* dir = opendir("/proc");
+    struct dirent* ent;
+    char* endptr;
+    while ((ent = readdir(dir)) != NULL) {
+        long lpid = strtol(ent->d_name, &endptr, 10);
+        if (*endptr != '\0') continue;
+            
+        char buf[512];
+        snprintf(buf, sizeof(buf), "/proc/%ld/cmdline", lpid);
+        FILE* fp = fopen(buf, "r");
+        if (fp) {
+            if (fgets(buf, sizeof(buf), fp) != NULL) {
+                char* first = strtok(buf, " ");
+                if (strcmp(first, "./soal1_traizone") == 0) {
+                    pid_t child = fork();
+                    if (child == 0) {
+                        char cmd[500];
+                        sprintf(cmd, "%ld", lpid);
+                        execl("/bin/kill", "kill", "-9", cmd, NULL);
+                    }
+                }
+            }
+            fclose(fp);
+        }
+    }
+    closedir(dir);
+    int status;
+    while(wait(&status) > 0);
+
+    shmdt(shmpokemon);
+    shmdt(shmlp);
+    shmdt(shmpb);
+    shmdt(shmb);
+    shmctl(shmidpokemon, IPC_RMID, NULL);
+    shmctl(shmidlp, IPC_RMID, NULL);
+    shmctl(shmidpb, IPC_RMID, NULL);
+    shmctl(shmidb, IPC_RMID, NULL);
+    exit(EXIT_SUCCESS);
+}
+```
+Fitur Jual Item berada pada thread `frestockthread` yang akan menambahkan masing-masing item 10 buah setiap 10 detik. Maksimum masing-masing item di dalam Shop adalah 200 buah.
+```c
+void* frestockthread() {
+    while (1) {
+        sleep(10);
+        *shmlp += 10;
+        if (*shmlp > 200) *shmlp = 200;
+        *shmpb += 10;
+        if (*shmpb > 200) *shmpb = 200;
+        *shmb += 10;
+        if (*shmb > 200) *shmb = 200;
+    }
+}
+```
+Sementara itu, fitur random pokemon berada pada thread `frandomthread` yang nantinya akan memilih salah satu tipe pokemon berdasarkan encounter ratenya. 
+```c
+void* frandomthread() {
+    while (1) {
+        int poke;
+        int r = rand() % 100;
+        if (r < 5) {
+            poke = (rand() % 5) + 10;
+        } else if (r < 20) {
+            poke = (rand() % 5) + 5;
+        } else {
+            poke = (rand() % 5);
+        }
+        if (rand() % 8000 == 0) {
+            poke += 15;
+        }
+        *shmpokemon = poke;
+        sleep(1);
+    }
+}
+```
+**Kendala**
+Affection Point langsung 0 setelah 10 detik pokemon ditangkap dan masih tidak bisa menangkap pokemon kedua.
+
+---
 
 ## Soal #2
 
 Pada soal ini di minta untuk membuat program client dan server menggunakan socket.
 
-pada client terdapat 2 screen yaitu screen login dan register pada screen pertama dan find match dan logout pada screen 2 
+Pada client terdapat 2 screen yaitu screen login dan register pada screen pertama dan find match dan logout pada screen 2 
 
-pertama kita hubungkan kedua socket 
+Pertama kita hubungkan kedua socket.
 ```c
     struct sockaddr_in address;
     int new_socket = 0;
@@ -39,11 +281,11 @@ pertama kita hubungkan kedua socket
         return -1;
     }
 ```
-untuk menerima kiriman dari server. pertama buffer sebagai penerima maka kita kosongkan dulu lalu di baca jika bukan wait dan play maka yang kirim adalah screen 1 dan screen 2 lalu kita akan mengirim inputan dari player
+Untuk menerima kiriman dari server. Pertama buffer sebagai penerima maka kita kosongkan dulu lalu di baca jika bukan wait dan play maka yang kirim adalah screen 1 dan screen 2 lalu kita akan mengirim inputan dari player
 ```c
             bzero(buffer, sizeof(buffer));
             read(sockfd, buffer, sizeof(buffer));
-            // printf("buff2 %s buff2\n",buffer);
+
             while(!(strncmp(buffer,"wait",4))) {
                 printf("Waiting for player ...\n");
                 bzero(buffer, sizeof(buffer));
@@ -71,7 +313,7 @@ untuk menerima kiriman dari server. pertama buffer sebagai penerima maka kita ko
                 send( sockfd, buffer, sizeof(buffer), 0 );
             }
 ```
-jika server telah mengirim play maka game akan di mulai. setiap player dapat menyerang musuh dengan menekan tombol spasi dan player yang di serang akan di beritahukan jika terkena hit
+Jika server telah mengirim play maka game akan di mulai. setiap player dapat menyerang musuh dengan menekan tombol spasi dan player yang di serang akan di beritahukan jika terkena hit
 ```c
             printf("Game started\n");
 
@@ -87,27 +329,27 @@ jika server telah mengirim play maka game akan di mulai. setiap player dapat men
             pthread_join(tid2,NULL);
             play = 0;
 ```
-di sini kita membuat thread untuk membaca heal jika terkena serangan sampai salah satu player menang atau mati 
+Di sini kita membuat thread untuk membaca heal jika terkena serangan sampai salah satu player menang atau mati 
 ```c
     while(!dead && !win){
 
         int sockfd = *(int *)arg;
         bzero(buffer, sizeof(buffer));
         read(sockfd, buffer, sizeof(buffer));
-        // printf("win = %d\ndead = %d\nplay = %d\n",win,dead,play);
+
         if(!(strncmp(buffer,"win",3))){
             win = 1;
-            // play = 0;
+
         }
         else if(!(strncmp(buffer,"dead",4))){
             dead = 1;
-            // play = 0;
+
         }
         printf("%s\n",buffer);
     }
 ```
 
-berikut cara untuk membaca spasi menggunakan termios
+Berikut cara untuk membaca spasi menggunakan termios
 ```c
 void initTermios(int echo) 
 {
@@ -140,7 +382,7 @@ char getch(void)
   return getch_(0);
 }
 ```
-selanjutnya di sisi server. server akan menyimpan setian socket yang masuk dengan cara menyimpannya di array lalu jalankan thread 
+Selanjutnya di sisi server. server akan menyimpan setian socket yang masuk dengan cara menyimpannya di array lalu jalankan thread 
 ```c
     while((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))) {
         id_socket[i] = new_socket;
@@ -149,7 +391,7 @@ selanjutnya di sisi server. server akan menyimpan setian socket yang masuk denga
     }
 ```
 
-selanjutnya server akan mengirim buffer dan menerima buffer dari player
+Selanjutnya server akan mengirim buffer dan menerima buffer dari player
 ```c
             bzero(buffer, sizeof(buffer));
             if(flag == 0 && game == 0 )
@@ -161,27 +403,27 @@ selanjutnya server akan mengirim buffer dan menerima buffer dari player
             bzero(buffer, sizeof(buffer));
             read(new_socket, buffer, 1024);
 ```
-jika player pilih login dan mengirim username serta password maka server akan mengecek apakah ada username dan password tersebut di database
+Jika player pilih login dan mengirim username serta password maka server akan mengecek apakah ada username dan password tersebut di database
 ```c
             if(!(strncmp(buffer,"login",5))){
-                // printf("2\n");
+
                 char line[160];
                 send ( new_socket, "   Username : ", 14, 0);
                 bzero(buffer, sizeof(buffer));
                 read(new_socket, buffer, 1024);
-                // printf("aa = %s\n",buffer);
+
                 fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
                 strcpy(username,buffer);
-                // printf("dd = %s\n",username);
+
                 send( new_socket, "   Password : ", 14, 0);
                 bzero(buffer, sizeof(buffer));
                 read(new_socket, buffer, 1024);
-                // printf("bb = %s\n",buffer);
+
                 strcat(username," - ");
                 strcat(username,buffer);
-                // printf("cc = %s\n",username);
+		
                 while (fgets(line, sizeof(line), fp) != NULL) {
-                    // printf("%s ",line);
+
                     if (strstr(line, username) != NULL) {
                         flag = 1;
                         printf("Auth success\n");
@@ -191,28 +433,28 @@ jika player pilih login dan mengirim username serta password maka server akan me
                 if(flag == 0){
                     printf("Auth Failed\n");
                 }
-                // fprintf(fp, "%s\n",username);
+
                 bzero(buffer, sizeof(buffer));
                 fclose(fp);
 ```
-jika player memilih register maka server akan menambahkan username dan password ke dalam database dan menampilkan database tersebut di server
+Jika player memilih register maka server akan menambahkan username dan password ke dalam database dan menampilkan database tersebut di server
 ```c
             else if (!(strncmp(buffer,"register",8))) {
-                // printf("2\n");
+
                 send ( new_socket, "   Username : ", 14, 0);
                 bzero(buffer, sizeof(buffer));
                 read(new_socket, buffer, 1024);
-                // printf("aa = %s\n",buffer);
+
                 fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","a");
                 strcpy(username,buffer);
-                // printf("dd = %s\n",username);
+
                 send( new_socket, "   Password : ", 14, 0);
                 bzero(buffer, sizeof(buffer));
                 read(new_socket, buffer, 1024);
-                // printf("bb = %s\n",buffer);
+
                 strcat(username," - ");
                 strcat(username,buffer);
-                // printf("cc = %s\n",username);
+
                 fprintf(fp, "%s\n",username);
                 bzero(buffer, sizeof(buffer));
                 fclose(fp);
@@ -223,49 +465,45 @@ jika player memilih register maka server akan menambahkan username dan password 
                 }
                 fclose(fp);
 ```
-jika player telah login maka server akan mengirimkan screen 2 pada player jika player ingin mencari match maka player mengirim find ke server dan jika hanya 1 player yang mengirim find maka server akan melooping untuk menunggu player ke 2
+Jika player telah login maka server akan mengirimkan screen 2 pada player jika player ingin mencari match maka player mengirim find ke server dan jika hanya 1 player yang mengirim find maka server akan melooping untuk menunggu player ke 2
 ```c
                 player++;
                 while(player < 2){
-                    // printf("buffer 3 ->%s wait\n",buffer);
                     send( new_socket, "wait", 4, 0);
-                    // printf("player %d\n",player);
                     bzero(buffer, sizeof(buffer));
-                sleep(1);
+                    sleep(1);
                 }
                 if(player == 2){
                 game = 1;
-                // he
-                // printf("buffer 4 ->%s play\n",buffer);
+
                 send( new_socket, "play", 4, 0);
                 }
 ```
-selanjutnya jika telah memasuki game maka server akan membaca kiriman dari player jika player 1 mengirim hit maka player 2 akan berkurang nyawanya begitu sebalikanya dan kalau salah satu player nyawanya telah habis maka server akan mengirim dead kepada player yang kebabisan nyawa dan mengirim win kepada player yang masih memiliki nyawa 
+Selanjutnya jika telah memasuki game maka server akan membaca kiriman dari player jika player 1 mengirim hit maka player 2 akan berkurang nyawanya begitu sebalikanya dan kalau salah satu player nyawanya telah habis maka server akan mengirim dead kepada player yang kebabisan nyawa dan mengirim win kepada player yang masih memiliki nyawa 
 ```c
            bzero(buffer, sizeof(buffer));
             read(new_socket, buffer, 1024);
-            // printf("nwe sokt %d, bufdd %s\n",new_socket,buffer);
+
             if (!(strncmp(buffer,"hit",3))){
-            // int
-                // printf("new socket1 %d\nbuffer %s\n-----\nheal1 = %d\nheal2 = %d\n",new_socket,buffer,id_heal[1],id_heal[0]);
+
                 if(new_socket == id_socket[1]){
                     id_heal[0] = id_heal[0] - 10;
                     sprintf(heal,"%d",id_heal[0]);
                     bzero(buffer, sizeof(buffer));
-                    // printf("*****\nbuffer2 %s\n*****\n",buffer);
+
                     strcpy(buffer,"heal ");
                     strcat(buffer,heal);
-                    // printf("*****\nbuffer2 %s\n*****\n",buffer);
+
                     send( id_socket[0], buffer, sizeof(buffer), 0);
                 }
                 else if(new_socket == id_socket[0]){
                     id_heal[1] = id_heal[1] - 10;
                     sprintf(heal,"%d",id_heal[1]);
                     bzero(buffer, sizeof(buffer));
-                    // printf("+++++\nbuffer1 %s\n+++++\n",buffer);
+
                     strcpy(buffer,"heal ");
                     strcat(buffer,heal);
-                    // printf("+++++\nbuffer1 %s\n+++++\n",buffer);
+
                     send( id_socket[1], buffer, sizeof(buffer), 0);
                 }
                 else
@@ -288,6 +526,8 @@ selanjutnya jika telah memasuki game maka server akan membaca kiriman dari playe
                     player = 0;
                     game = 0;
 ```
+
+---
 
 ## Soal #3
 Pada soal ini, kita diminta untuk membuat program C yang dapat mengkategorikan file sesuai dengan ekstensinya. Apabila file tersebut tidak memiliki ekstensi maka file tersebut akan dipindahkan ke folder Unknown. Terdapat tiga mode untuk mengkategorikan file, yaitu -f, *, dan -d.
