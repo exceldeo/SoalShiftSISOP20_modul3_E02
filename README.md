@@ -4,7 +4,7 @@
 1. [Soal #1](#soal-1) (Source Code : [soal1.c]())
 2. [Soal #2](#soal-2) (Source Code : [soal2.c]())
 3. [Soal #3](#soal-3) (Source Code : [soal3.c]())
-4. [Soal #4](#soal-4) (Source Code : [soal4a.c]() [soal4b.c]() [soal4c.c]())
+4. [Soal #4](#soal-4) (Source Code : [soal4a.c](), [soal4b.c](), [soal4c.c]())
 
 ## Soal #3
 Pada soal ini, kita diminta untuk membuat program C yang dapat mengkategorikan file sesuai dengan ekstensinya. Apabila file tersebut tidak memiliki ekstensi maka file tersebut akan dipindahkan ke folder Unknown. Terdapat tiga mode untuk mengkategorikan file, yaitu -f, *, dan -d.
@@ -58,7 +58,7 @@ Kode di atas untuk membuka direktori yang seluruh filenya ingin dikategorikan. K
 + `strcpy(tempata,cwd)`,`strcat(tempata,"/")`, dan `strcat(tempata,masuk->d_name)` menyimpan path dari file yang akan dikategorikan pada `tempata`. Adapun `cwd` atau current working directory diperoleh dari `getcwd(cwd, sizeof(cwd))`.
 + `if(masuk->d_type == 8)` untuk mengecek apakah file atau bukan. Apabila `masuk` merupakan file maka akan dibuat thread untuk mengkategorikan file tersebut.
 
-Berikut ini merupakan isi dari thread untuk mengkategorikan file.
+Kode-kode di bawah ini merupakan isi dari thread `playandcount` yang mengkategorikan suatu file.
 ```c
 token1 = strtok(abc, "/");
 while( token1 != NULL ) {
@@ -69,6 +69,7 @@ while( token1 != NULL ) {
 }
 strcpy(arr3,arr2[m-1]);
 ```
+
 Kode tersebut untuk mendapatkan nama file beserta ekstensinya. Sementara kode di bawah ini untuk mendapatkan ekstensi dari file tersebut.
 ```c
 token = strtok(arr2[m-1], ".");
@@ -111,15 +112,15 @@ if( n > 1 ){
     }
 }
 ```
-Sementara apabila file yang akan dikategorikan tidak memiliki ekstensi, maka akan dibuat folder `Unknown`.
+Sementara apabila file yang akan dikategorikan tidak memiliki ekstensi, maka akan dibuat folder `Unknown` dengan fungsi `mkdir` seperti ketika membuat folder dengan nama ekstensi file.
 
-Untuk memindahkan file ke dalam folder sesuai dengan ekstensinya digunakan fungsi `rename(source, destination)` dimana `source` berisi path awal file yang ingin dikategorikan dan `destination` berisi path ke folder di working directory.
+Untuk memindahkan file ke dalam folder sesuai dengan ekstensinya digunakan fungsi `rename(source, destination)` dimana `source` berisi path awal file yang ingin dikategorikan dan `destination` berisi path ke folder dengan nama ekstensi file tersebut di working directory.
 
 ---
 
 ## Soal #4
 
-**Perkalian matriks** pada program 4a dilakukan antara matriks 4x2 dan matriks 2x5 sehingga menghasilkan matriks 4x5. Untuk melakukan perkalian matriks ini, kami menggunakan thread `playandcount` dengan kode sebagai berikut.
+**Perkalian matriks** pada program 4a dilakukan antara matriks 4x2 dan matriks 2x5 sehingga menghasilkan matriks 4x5. Untuk melakukan perkalian matriks ini, kami menggunakan thread `playandcount` dengan kode sebagai berikut. 
 ```c
 void* playandcount (void *arg) {
 
@@ -159,6 +160,11 @@ sleep(10);
 shmdt(matrix);
 shmctl(shmid, IPC_RMID, NULL);
 ```
+Berikut ini sedikit penjelasan mengenai kode di atas.
++ `shmid` disini mengembalikan nilai dari pemanggilan sistem `shmget(key, sizeof(int)*row*column, IPC_CREAT | 0666)` yang digunakan untuk membuat suatu segmen dalam memori.
++ `matrix = (int *)shmat(shmid, NULL, 0)` mendaftarkan atau mengattach segmen ke data space dari proses.
++ `shmdt(matrix)` untuk mendetach segmen dari data space dari proses.
++ `shmctl(shmid, IPC_RMID, NULL)` untuk mengetahui atau mengubah informasi yang berkaitan dengan suatu shared memory.
 
 Untuk **menampilkan hasil perkalian** dari program 4a pada program 4b dapat dilakukan dengan menggunakan shared memory seperti kode di atas. Hasil dari perkalian tersebut kemudian kami simpan dalam `matriks[i][j]` agar dapat digunakan untuk menghitung penjumlahan dari n sampai 1.
 ```c
@@ -187,7 +193,7 @@ void* playandcount (void *arg) {
 
 Pada program 4c, kita diminta untuk membuat program yang dapat mengetahui jumlah file dan folder di direktori saat ini dengan command **ls | wc -l**. Selain itu, program ini juga harus menggunakan **IPC pipes**.
 
-Disini, untuk membuat program tersebut, kami menggunakan 2 pipe dengan fork. Apabila fork berhasil dilakukan dan child process berhasil dibuat (`p == 0`), maka pipe pertama `fd1[1]`akan diduplikasi menjadi file deskriptor dari stdout, lalu pipe pertama tersebut `fd1` akan ditutup dan program akan mengeksekusi command `ls`.
+Disini, untuk membuat program tersebut, kami menggunakan 2 pipe dengan fork. Pembuatan pipe dapat dilakukan dengan fungsi `pipe()`. Apabila fork berhasil dilakukan dan child process berhasil dibuat (`p == 0`), maka pipe pertama `fd1[1]`akan diduplikasi menjadi file deskriptor dari stdout, lalu pipe pertama tersebut `fd1` akan ditutup dan program akan mengeksekusi command `ls`.
 ```c
 else if (p == 0) { 
     
@@ -200,7 +206,7 @@ else if (p == 0) {
     execv("/bin/ls", argm1);
 } 
 ```
-Kemudian barulah parent processnya dieksekusi dengan terlebih dahulu menutup pipe kedua `fd2`, menduplikasi pipe pertama `fd1[0]` menjadi file deskriptor dari stdin, menduplikasi pipe kedua `fd2[1]` menjadi file deskriptor stdout, dan menutup pipe pertama `fd1`. Parent process disini akan mengeksekusi command `wc -l`.
+Kemudian barulah parent processnya dieksekusi dengan terlebih dahulu menutup pipe kedua `fd2`, menduplikasi pipe pertama `fd1[0]` menjadi file deskriptor dari stdin, menduplikasi pipe kedua `fd2[1]` menjadi file deskriptor dari stdout, dan menutup pipe pertama `fd1`. Parent process disini akan mengeksekusi command `wc -l`.
 ```c
 else {
 
