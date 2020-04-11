@@ -6,6 +6,289 @@
 3. [Soal #3](#soal-3) (Source Code : [soal3.c]())
 4. [Soal #4](#soal-4) (Source Code : [soal4a.c](), [soal4b.c](), [soal4c.c]())
 
+## Soal #2
+
+Pada soal ini di minta untuk membuat program client dan server menggunakan socket.
+
+pada client terdapat 2 screen yaitu screen login dan register pada screen pertama dan find match dan logout pada screen 2 
+
+pertama kita hubungkan kedua socket 
+```c
+    struct sockaddr_in address;
+    int new_socket = 0;
+    struct sockaddr_in serv_addr;
+
+    if ((new_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("\n Socket creation error \n");
+        return -1;
+    }
+
+    memset(&serv_addr, '0', sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0) {
+        printf("\nInvalid address/Address not supported \n");
+        return -1;
+    }
+
+    if (connect(new_socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        printf("\nConnection Failed \n");
+        return -1;
+    }
+```
+untuk menerima kiriman dari server. pertama buffer sebagai penerima maka kita kosongkan dulu lalu di baca jika bukan wait dan play maka yang kirim adalah screen 1 dan screen 2 lalu kita akan mengirim inputan dari player
+```c
+            bzero(buffer, sizeof(buffer));
+            read(sockfd, buffer, sizeof(buffer));
+            // printf("buff2 %s buff2\n",buffer);
+            while(!(strncmp(buffer,"wait",4))) {
+                printf("Waiting for player ...\n");
+                bzero(buffer, sizeof(buffer));
+                sleep(1);
+                read(sockfd, buffer, sizeof(buffer));
+            }
+
+            if(!(strncmp(buffer,"play",4))) {
+                play = 1;
+            }
+            if(win == 0 && dead == 0 && play == 0 ){
+
+                printf("%s", buffer);
+                bzero(buffer, sizeof(buffer));
+                // scanf("%[^\n]s",buffer);
+                int n = 0;
+                char com;
+                
+                while ((com = getchar()) != '\n'){
+                    if(com != '\n')
+                        buffer[n] = com;
+                    n++;
+                }
+
+                send( sockfd, buffer, sizeof(buffer), 0 );
+            }
+```
+jika server telah mengirim play maka game akan di mulai. setiap player dapat menyerang musuh dengan menekan tombol spasi dan player yang di serang akan di beritahukan jika terkena hit
+```c
+            printf("Game started\n");
+
+            pthread_create(&(tid2), NULL, baca, &sockfd);
+            while(!dead && !win){
+                c = getch();
+                if(c == ' '){
+                    send( sockfd,"hit", 3, 0 );
+                    // printf("ok");
+                    hit++;
+                }
+            }
+            pthread_join(tid2,NULL);
+            play = 0;
+```
+di sini kita membuat thread untuk membaca heal jika terkena serangan sampai salah satu player menang atau mati 
+```c
+    while(!dead && !win){
+
+        int sockfd = *(int *)arg;
+        bzero(buffer, sizeof(buffer));
+        read(sockfd, buffer, sizeof(buffer));
+        // printf("win = %d\ndead = %d\nplay = %d\n",win,dead,play);
+        if(!(strncmp(buffer,"win",3))){
+            win = 1;
+            // play = 0;
+        }
+        else if(!(strncmp(buffer,"dead",4))){
+            dead = 1;
+            // play = 0;
+        }
+        printf("%s\n",buffer);
+    }
+```
+
+berikut cara untuk membaca spasi menggunakan termios
+```c
+void initTermios(int echo) 
+{
+  tcgetattr(0, &old); /* grab old terminal i/o settings */
+  new = old; /* make new settings same as old settings */
+  new.c_lflag &= ~ICANON; /* disable buffered i/o */
+  new.c_lflag &= echo ? ECHO : ~ECHO; /* set echo mode */
+  tcsetattr(0, TCSANOW, &new); /* use these new terminal i/o settings now */
+}
+
+/* Restore old terminal i/o settings */
+void resetTermios(void) 
+{
+  tcsetattr(0, TCSANOW, &old);
+}
+
+/* Read 1 character - echo defines echo mode */
+char getch_(int echo) 
+{
+  char ch;
+  initTermios(echo);
+  ch = getchar();
+  resetTermios();
+  return ch;
+}
+
+/* Read 1 character without echo */
+char getch(void) 
+{
+  return getch_(0);
+}
+```
+selanjutnya di sisi server. server akan menyimpan setian socket yang masuk dengan cara menyimpannya di array lalu jalankan thread 
+```c
+    while((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))) {
+        id_socket[i] = new_socket;
+        pthread_create(&(tid[i]), NULL, playandcount, &new_socket);
+        i++;
+    }
+```
+
+selanjutnya server akan mengirim buffer dan menerima buffer dari player
+```c
+            bzero(buffer, sizeof(buffer));
+            if(flag == 0 && game == 0 )
+            strcpy(buffer,cek1);
+            else if(flag == 1 && game == 0)
+            strcpy(buffer,cek2);
+            send ( new_socket, buffer, sizeof(buffer), 0) ;
+
+            bzero(buffer, sizeof(buffer));
+            read(new_socket, buffer, 1024);
+```
+jika player pilih login dan mengirim username serta password maka server akan mengecek apakah ada username dan password tersebut di database
+```c
+            if(!(strncmp(buffer,"login",5))){
+                // printf("2\n");
+                char line[160];
+                send ( new_socket, "   Username : ", 14, 0);
+                bzero(buffer, sizeof(buffer));
+                read(new_socket, buffer, 1024);
+                // printf("aa = %s\n",buffer);
+                fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
+                strcpy(username,buffer);
+                // printf("dd = %s\n",username);
+                send( new_socket, "   Password : ", 14, 0);
+                bzero(buffer, sizeof(buffer));
+                read(new_socket, buffer, 1024);
+                // printf("bb = %s\n",buffer);
+                strcat(username," - ");
+                strcat(username,buffer);
+                // printf("cc = %s\n",username);
+                while (fgets(line, sizeof(line), fp) != NULL) {
+                    // printf("%s ",line);
+                    if (strstr(line, username) != NULL) {
+                        flag = 1;
+                        printf("Auth success\n");
+                        break;
+                    }
+                }
+                if(flag == 0){
+                    printf("Auth Failed\n");
+                }
+                // fprintf(fp, "%s\n",username);
+                bzero(buffer, sizeof(buffer));
+                fclose(fp);
+```
+jika player memilih register maka server akan menambahkan username dan password ke dalam database dan menampilkan database tersebut di server
+```c
+            else if (!(strncmp(buffer,"register",8))) {
+                // printf("2\n");
+                send ( new_socket, "   Username : ", 14, 0);
+                bzero(buffer, sizeof(buffer));
+                read(new_socket, buffer, 1024);
+                // printf("aa = %s\n",buffer);
+                fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","a");
+                strcpy(username,buffer);
+                // printf("dd = %s\n",username);
+                send( new_socket, "   Password : ", 14, 0);
+                bzero(buffer, sizeof(buffer));
+                read(new_socket, buffer, 1024);
+                // printf("bb = %s\n",buffer);
+                strcat(username," - ");
+                strcat(username,buffer);
+                // printf("cc = %s\n",username);
+                fprintf(fp, "%s\n",username);
+                bzero(buffer, sizeof(buffer));
+                fclose(fp);
+                char line[100];
+                fp = fopen ("/home/excel/Desktop/SoalShiftSISOP20_modul3_E02/soal2/database.txt","r");
+                while (fgets(line, sizeof(line), fp) != NULL) {
+                    printf("%s",line);
+                }
+                fclose(fp);
+```
+jika player telah login maka server akan mengirimkan screen 2 pada player jika player ingin mencari match maka player mengirim find ke server dan jika hanya 1 player yang mengirim find maka server akan melooping untuk menunggu player ke 2
+```c
+                player++;
+                while(player < 2){
+                    // printf("buffer 3 ->%s wait\n",buffer);
+                    send( new_socket, "wait", 4, 0);
+                    // printf("player %d\n",player);
+                    bzero(buffer, sizeof(buffer));
+                sleep(1);
+                }
+                if(player == 2){
+                game = 1;
+                // he
+                // printf("buffer 4 ->%s play\n",buffer);
+                send( new_socket, "play", 4, 0);
+                }
+```
+selanjutnya jika telah memasuki game maka server akan membaca kiriman dari player jika player 1 mengirim hit maka player 2 akan berkurang nyawanya begitu sebalikanya dan kalau salah satu player nyawanya telah habis maka server akan mengirim dead kepada player yang kebabisan nyawa dan mengirim win kepada player yang masih memiliki nyawa 
+```c
+           bzero(buffer, sizeof(buffer));
+            read(new_socket, buffer, 1024);
+            // printf("nwe sokt %d, bufdd %s\n",new_socket,buffer);
+            if (!(strncmp(buffer,"hit",3))){
+            // int
+                // printf("new socket1 %d\nbuffer %s\n-----\nheal1 = %d\nheal2 = %d\n",new_socket,buffer,id_heal[1],id_heal[0]);
+                if(new_socket == id_socket[1]){
+                    id_heal[0] = id_heal[0] - 10;
+                    sprintf(heal,"%d",id_heal[0]);
+                    bzero(buffer, sizeof(buffer));
+                    // printf("*****\nbuffer2 %s\n*****\n",buffer);
+                    strcpy(buffer,"heal ");
+                    strcat(buffer,heal);
+                    // printf("*****\nbuffer2 %s\n*****\n",buffer);
+                    send( id_socket[0], buffer, sizeof(buffer), 0);
+                }
+                else if(new_socket == id_socket[0]){
+                    id_heal[1] = id_heal[1] - 10;
+                    sprintf(heal,"%d",id_heal[1]);
+                    bzero(buffer, sizeof(buffer));
+                    // printf("+++++\nbuffer1 %s\n+++++\n",buffer);
+                    strcpy(buffer,"heal ");
+                    strcat(buffer,heal);
+                    // printf("+++++\nbuffer1 %s\n+++++\n",buffer);
+                    send( id_socket[1], buffer, sizeof(buffer), 0);
+                }
+                else
+                    printf("error\n");
+
+
+                if(id_heal[1] <= 0 || id_heal[0] <= 0 ) {
+                    if((new_socket == id_socket[0] && id_heal[0] <= 0) || (new_socket == id_socket[1] && id_heal[1] >= 0)){
+                        bzero(buffer, sizeof(buffer));
+                        send( id_socket[1], "win", 3, 0);
+                        bzero(buffer, sizeof(buffer));
+                        send( id_socket[0], "dead", 4, 0);
+                    }
+                    else{
+                        bzero(buffer, sizeof(buffer));
+                        send( id_socket[0], "win", 3, 0);
+                        bzero(buffer, sizeof(buffer));
+                        send( id_socket[1], "dead", 4, 0);
+                    }
+                    player = 0;
+                    game = 0;
+```
+
 ## Soal #3
 Pada soal ini, kita diminta untuk membuat program C yang dapat mengkategorikan file sesuai dengan ekstensinya. Apabila file tersebut tidak memiliki ekstensi maka file tersebut akan dipindahkan ke folder Unknown. Terdapat tiga mode untuk mengkategorikan file, yaitu -f, *, dan -d.
 
